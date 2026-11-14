@@ -41,3 +41,18 @@ Invoke-RestMethod "$base/service-requests/$($request.id)"
 | PATCH | `/service-requests/{id}/status` | Advance its status |
 
 A service request starts as `Open`, advances to `InProgress`, and ends at `Completed`. The API returns `400` for invalid input, `404` for missing records, and `409` for duplicate plates or conflicting status updates.
+
+## OpenAPI contract
+
+Run the API in the Development environment to generate its OpenAPI contract.
+The document is available before making database requests.
+
+```powershell
+$env:ASPNETCORE_ENVIRONMENT = 'Development'
+dotnet run -- --urls http://localhost:5080
+```
+
+Open `http://localhost:5080/openapi/v1.json` in a browser or import it into
+an API client. The document describes the request models and the expected
+success and error status codes. The contract endpoint is enabled only in
+Development.

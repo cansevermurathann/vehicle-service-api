@@ -11,9 +11,12 @@ builder.Services.AddDbContext<ServiceDb>(options => options.UseSqlServer(connect
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false)));
 builder.Services.AddProblemDetails();
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 app.UseExceptionHandler();
+if (app.Environment.IsDevelopment())
+    app.MapOpenApi();
 
 if (args.Contains("--init-db"))
 {
@@ -23,7 +26,9 @@ if (args.Contains("--init-db"))
 }
 
 app.MapGet("/customers/{id:int}", async (int id, ServiceDb db, CancellationToken ct) =>
-    await db.Customers.FindAsync([id], ct) is { } customer ? Results.Ok(customer) : Results.NotFound());
+    await db.Customers.FindAsync([id], ct) is { } customer ? Results.Ok(customer) : Results.NotFound())
+    .Produces<Customer>()
+    .Produces(StatusCodes.Status404NotFound);
 
 app.MapPost("/customers", async (CreateCustomer input, ServiceDb db, CancellationToken ct) =>
 {
@@ -35,10 +40,14 @@ app.MapPost("/customers", async (CreateCustomer input, ServiceDb db, Cancellatio
     db.Customers.Add(customer);
     await db.SaveChangesAsync(ct);
     return Results.Created($"/customers/{customer.Id}", customer);
-});
+})
+    .Produces<Customer>(StatusCodes.Status201Created)
+    .ProducesValidationProblem();
 
 app.MapGet("/vehicles/{id:int}", async (int id, ServiceDb db, CancellationToken ct) =>
-    await db.Vehicles.FindAsync([id], ct) is { } vehicle ? Results.Ok(vehicle) : Results.NotFound());
+    await db.Vehicles.FindAsync([id], ct) is { } vehicle ? Results.Ok(vehicle) : Results.NotFound())
+    .Produces<Vehicle>()
+    .Produces(StatusCodes.Status404NotFound);
 
 app.MapPost("/vehicles", async (CreateVehicle input, ServiceDb db, CancellationToken ct) =>
 {
@@ -61,10 +70,16 @@ app.MapPost("/vehicles", async (CreateVehicle input, ServiceDb db, CancellationT
     }
 
     return Results.Created($"/vehicles/{vehicle.Id}", vehicle);
-});
+})
+    .Produces<Vehicle>(StatusCodes.Status201Created)
+    .ProducesValidationProblem()
+    .Produces(StatusCodes.Status404NotFound)
+    .Produces(StatusCodes.Status409Conflict);
 
 app.MapGet("/service-requests/{id:int}", async (int id, ServiceDb db, CancellationToken ct) =>
-    await db.ServiceRequests.FindAsync([id], ct) is { } request ? Results.Ok(request) : Results.NotFound());
+    await db.ServiceRequests.FindAsync([id], ct) is { } request ? Results.Ok(request) : Results.NotFound())
+    .Produces<ServiceRequest>()
+    .Produces(StatusCodes.Status404NotFound);
 
 app.MapPost("/service-requests", async (OpenServiceRequest input, ServiceDb db, CancellationToken ct) =>
 {
@@ -79,7 +94,10 @@ app.MapPost("/service-requests", async (OpenServiceRequest input, ServiceDb db, 
     db.ServiceRequests.Add(request);
     await db.SaveChangesAsync(ct);
     return Results.Created($"/service-requests/{request.Id}", request);
-});
+})
+    .Produces<ServiceRequest>(StatusCodes.Status201Created)
+    .ProducesValidationProblem()
+    .Produces(StatusCodes.Status404NotFound);
 
 app.MapPatch("/service-requests/{id:int}/status", async (
     int id, ChangeStatus input, ServiceDb db, CancellationToken ct) =>
@@ -112,7 +130,11 @@ app.MapPatch("/service-requests/{id:int}/status", async (
     }
 
     return Results.Ok(request);
-});
+})
+    .Produces<ServiceRequest>()
+    .ProducesValidationProblem()
+    .Produces(StatusCodes.Status404NotFound)
+    .Produces(StatusCodes.Status409Conflict);
 
 await app.RunAsync();
 
