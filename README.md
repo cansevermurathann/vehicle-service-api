@@ -56,3 +56,20 @@ Open `http://localhost:5080/openapi/v1.json` in a browser or import it into
 an API client. The document describes the request models and the expected
 success and error status codes. The contract endpoint is enabled only in
 Development.
+
+## Browse service requests
+
+Use `GET /service-requests` to browse requests in ascending ID order. Supply an
+optional `vehicleId` or `status` (`Open`, `InProgress`, or `Completed`) to
+narrow the results. Each response contains `items` and `nextAfterId`.
+
+```powershell
+$page = Invoke-RestMethod "$base/service-requests?status=Open&limit=10"
+if ($null -ne $page.nextAfterId) {
+    Invoke-RestMethod "$base/service-requests?status=Open&limit=10&afterId=$($page.nextAfterId)"
+}
+```
+
+Repeat the same filters when following the cursor. The default page size is 20
+and the maximum is 100. A null cursor means there are no more matching rows at
+the time of the query. Separate requests do not share a database snapshot.

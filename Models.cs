@@ -53,3 +53,5 @@ public sealed record CreateCustomer(string? Name);
 public sealed record CreateVehicle(int CustomerId, string? Plate);
 public sealed record OpenServiceRequest(int VehicleId, string? Description);
 public sealed record ChangeStatus(ServiceStatus? Status);
+
+public sealed record ServiceRequestPage(IReadOnlyList<ServiceRequest> Items, int? NextAfterId);

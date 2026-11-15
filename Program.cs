@@ -76,6 +76,41 @@ app.MapPost("/vehicles", async (CreateVehicle input, ServiceDb db, CancellationT
     .Produces(StatusCodes.Status404NotFound)
     .Produces(StatusCodes.Status409Conflict);
 
+app.MapGet("/service-requests", async (
+    ServiceDb db, CancellationToken ct, int? vehicleId = null, string? status = null,
+    int afterId = 0, int limit = 20) =>
+{
+    if (vehicleId is <= 0)
+        return Invalid("vehicleId", "Provide a positive vehicle ID.");
+    if (afterId < 0)
+        return Invalid("afterId", "Provide a non-negative cursor.");
+    if (limit is < 1 or > 100)
+        return Invalid("limit", "Choose a page size from 1 to 100.");
+
+    var query = db.ServiceRequests.AsNoTracking().Where(request => request.Id > afterId);
+    if (vehicleId is int id)
+        query = query.Where(request => request.VehicleId == id);
+    if (status is not null)
+    {
+        if (!Enum.GetNames<ServiceStatus>().Contains(status, StringComparer.OrdinalIgnoreCase))
+            return Invalid("status", "Provide Open, InProgress, or Completed.");
+        var filter = Enum.Parse<ServiceStatus>(status, ignoreCase: true);
+        query = query.Where(request => request.Status == filter);
+    }
+
+    var items = await query.OrderBy(request => request.Id).Take(limit + 1).ToListAsync(ct);
+    int? nextAfterId = null;
+    if (items.Count > limit)
+    {
+        items.RemoveAt(limit);
+        nextAfterId = items[^1].Id;
+    }
+
+    return Results.Ok(new ServiceRequestPage(items, nextAfterId));
+})
+    .Produces<ServiceRequestPage>()
+    .ProducesValidationProblem();
+
 app.MapGet("/service-requests/{id:int}", async (int id, ServiceDb db, CancellationToken ct) =>
     await db.ServiceRequests.FindAsync([id], ct) is { } request ? Results.Ok(request) : Results.NotFound())
     .Produces<ServiceRequest>()
