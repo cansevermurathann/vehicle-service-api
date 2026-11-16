@@ -73,3 +73,18 @@ if ($null -ne $page.nextAfterId) {
 Repeat the same filters when following the cursor. The default page size is 20
 and the maximum is 100. A null cursor means there are no more matching rows at
 the time of the query. Separate requests do not share a database snapshot.
+
+## Run the HTTP contract tests
+
+From the repository root, with the .NET 10 SDK and Python 3 installed:
+
+```sh
+dotnet build
+python -m unittest discover -s tests -v
+```
+
+The suite launches the Debug build on an ephemeral localhost port. It checks
+the service request listing's OpenAPI contract and verifies that invalid
+filters and pagination values produce field-specific HTTP 400 responses.
+These cases run without SQL Server. Successful database-backed requests
+require a separate integration environment.
