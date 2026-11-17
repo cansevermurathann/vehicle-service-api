@@ -88,3 +88,7 @@ the service request listing's OpenAPI contract and verifies that invalid
 filters and pagination values produce field-specific HTTP 400 responses.
 These cases run without SQL Server. Successful database-backed requests
 require a separate integration environment.
+
+The [HTTP contract workflow](https://github.com/cansevermurathann/vehicle-service-api/actions/workflows/http-contract.yml)
+runs these same commands on GitHub-hosted Linux for pushes and pull requests
+targeting `main`. It can also be run manually from the Actions tab.
